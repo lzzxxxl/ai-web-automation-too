@@ -50,5 +50,6 @@ echo 使用说明:
 echo 1. 双击运行 start_chrome_debug.bat 或 start_edge_debug.bat 启动浏览器
 echo 2. 在浏览器中登录网页版AI平台
 echo 3. 双击运行 dist\AI网页全自动批量处理工具.exe
+echo 4. 在图形界面中配置参数，点击"开始运行"
 echo.
 pause

@@ -3,7 +3,7 @@
 block_cipher = None
 
 a = Analysis(
-    ['main.py'],
+    ['gui_main.py'],
     pathex=[],
     binaries=[],
     datas=[
@@ -14,6 +14,11 @@ a = Analysis(
         'pyperclip',
         'chardet',
         'PIL',
+        'tkinter',
+        'tkinter.ttk',
+        'tkinter.filedialog',
+        'tkinter.messagebox',
+        'tkinter.scrolledtext',
     ],
     hookspath=[],
     hooksconfig={},
