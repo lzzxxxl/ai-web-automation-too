@@ -132,6 +132,12 @@ class ModernAIAutomationGUI:
         self.debug_port.grid(row=row, column=1, sticky="w", pady=10, padx=10)
         row += 1
         
+        self.create_label_ctk(scroll_frame, "浏览器实例ID:", row, 0)
+        self.instance_id = CTkEntry(scroll_frame, placeholder_text="default", width=300)
+        self.instance_id.insert(0, "default")
+        self.instance_id.grid(row=row, column=1, sticky="w", pady=10, padx=10)
+        row += 1
+        
         self.create_label_ctk(scroll_frame, "标题文件:", row, 0)
         file_frame = CTkFrame(scroll_frame, fg_color="transparent")
         file_frame.grid(row=row, column=1, sticky="w", pady=10, padx=10)
@@ -358,6 +364,7 @@ class ModernAIAutomationGUI:
     def save_current_config(self):
         self.config["BROWSER_TYPE"] = self.browser_type.get()
         self.config["DEBUG_PORT"] = int(self.debug_port.get())
+        self.config["INSTANCE_ID"] = self.instance_id.get()
         self.config["QUESTION_FILE"] = self.question_file.get()
         self.config["SAVE_PATH"] = self.save_path.get()
         self.config["CONTINUE_MAX_CLICK"] = int(self.continue_max_click.get())

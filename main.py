@@ -27,6 +27,7 @@ class AIAutomationTool:
         """加载配置文件"""
         default_config = {
             "BROWSER_TYPE": "chrome",
+            "INSTANCE_ID": "default",
             "QUESTION_FILE": "questions.txt",
             "CONTINUE_MAX_CLICK": 10,
             "WAIT_STABLE_TIME": 5,
@@ -110,7 +111,8 @@ class AIAutomationTool:
             # 连接浏览器
             browser = browser_manager.connect_to_browser(
                 self.config["BROWSER_TYPE"],
-                self.config["DEBUG_PORT"]
+                self.config["DEBUG_PORT"],
+                self.config["INSTANCE_ID"]
             )
             
             if not browser:
@@ -131,7 +133,7 @@ class AIAutomationTool:
         """处理单个任务"""
         try:
             # 获取页面
-            page = browser_manager.get_or_create_page()
+            page = browser_manager.get_or_create_page(self.config["INSTANCE_ID"])
             if not page:
                 logger.error("获取页面失败")
                 return False
