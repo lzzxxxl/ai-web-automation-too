@@ -25,6 +25,7 @@ from browser_manager import browser_manager
 from title_manager import title_manager
 from ai_automation import AIAutomation
 from clipboard_integration import clipboard_integration
+from task_manager import task_manager
 
 class TextHandler(logging.Handler):
     def __init__(self, text_widget):
@@ -256,6 +257,56 @@ class ModernAIAutomationGUI:
         self.browser_status = CTkLabel(scroll_frame, text='📊 浏览器状态: 未连接', 
                                       font=('Microsoft YaHei', 12))
         self.browser_status.grid(row=row, column=0, columnspan=2, pady=10, padx=10)
+    
+    def setup_tasks_tab_ctk(self, parent):
+        scroll_frame = CTkScrollableFrame(parent, label_text='任务管理')
+        scroll_frame.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        # 任务输入
+        row = 0
+        self.create_label_ctk(scroll_frame, '任务标题:', row, 0)
+        self.task_title = CTkEntry(scroll_frame, placeholder_text='输入任务标题', width=300)
+        self.task_title.grid(row=row, column=1, sticky='w', pady=10, padx=10)
+        row += 1
+        
+        self.create_label_ctk(scroll_frame, '优先级:', row, 0)
+        self.task_priority = CTkComboBox(scroll_frame, values=['1', '2', '3', '4', '5'], state='readonly', width=300)
+        self.task_priority.set('3')
+        self.task_priority.grid(row=row, column=1, sticky='w', pady=10, padx=10)
+        row += 1
+        
+        # 任务操作按钮
+        btn_frame = CTkFrame(scroll_frame, fg_color='transparent')
+        btn_frame.grid(row=row, column=0, columnspan=2, pady=20, padx=10)
+        
+        CTkButton(btn_frame, text='➕ 添加任务', command=self.add_task, 
+                  width=120, height=35, font=('Microsoft YaHei', 12)).pack(side='left', padx=10)
+        
+        CTkButton(btn_frame, text='🗑️ 清空任务', command=self.clear_tasks, 
+                  width=120, height=35, font=('Microsoft YaHei', 12), fg_color='#ef4444', hover_color='#dc2626').pack(side='left', padx=10)
+        
+        CTkButton(btn_frame, text='📥 导入任务', command=self.import_tasks, 
+                  width=120, height=35, font=('Microsoft YaHei', 12)).pack(side='left', padx=10)
+        
+        CTkButton(btn_frame, text='📤 导出任务', command=self.export_tasks, 
+                  width=120, height=35, font=('Microsoft YaHei', 12)).pack(side='left', padx=10)
+        row += 1
+        
+        # 任务列表
+        CTkLabel(scroll_frame, text='任务列表:', font=('Microsoft YaHei', 14)).grid(row=row, column=0, columnspan=2, sticky='w', pady=10, padx=10)
+        row += 1
+        
+        self.tasks_list = CTkTextbox(scroll_frame, height=200, font=('Consolas', 11), state='disabled')
+        self.tasks_list.grid(row=row, column=0, columnspan=2, sticky='we', pady=10, padx=10)
+        row += 1
+        
+        # 任务统计
+        self.tasks_stats = CTkLabel(scroll_frame, text='📊 任务统计: 0 个任务', 
+                                   font=('Microsoft YaHei', 12))
+        self.tasks_stats.grid(row=row, column=0, columnspan=2, pady=10, padx=10)
+        
+        # 加载任务列表
+        self.update_tasks_list()
     
     def setup_titles_tab_ctk(self, parent):
         CTkLabel(parent, text="在此处粘贴标题（每行一个）", 
@@ -655,6 +706,115 @@ class ModernAIAutomationGUI:
             if ctk:
                 from tkinter import messagebox
             messagebox.showerror("错误", f"关闭浏览器失败: {e}")
+    
+    def add_task(self):
+        """添加任务"""
+        try:
+            title = self.task_title.get().strip()
+            if not title:
+                if ctk:
+                    from tkinter import messagebox
+                messagebox.showwarning("警告", "请输入任务标题！")
+                return
+            
+            priority = int(self.task_priority.get())
+            task = task_manager.add_task(title, priority)
+            
+            self.task_title.delete(0, 'end')
+            self.update_tasks_list()
+            
+            if ctk:
+                from tkinter import messagebox
+            messagebox.showinfo("成功", "任务添加成功！")
+        except Exception as e:
+            logging.error(f"添加任务失败: {e}")
+            if ctk:
+                from tkinter import messagebox
+            messagebox.showerror("错误", f"添加任务失败: {e}")
+    
+    def clear_tasks(self):
+        """清空任务"""
+        try:
+            if ctk:
+                from tkinter import messagebox
+            if messagebox.askyesno("确认", "确定要清空所有任务吗？"):
+                task_manager.clear_tasks()
+                self.update_tasks_list()
+                messagebox.showinfo("成功", "任务已清空！")
+        except Exception as e:
+            logging.error(f"清空任务失败: {e}")
+            if ctk:
+                from tkinter import messagebox
+            messagebox.showerror("错误", f"清空任务失败: {e}")
+    
+    def import_tasks(self):
+        """导入任务"""
+        try:
+            from tkinter import filedialog
+            filename = filedialog.askopenfilename(
+                title="选择任务文件",
+                filetypes=[("Text files", "*.txt"), ("JSON files", "*.json"), ("All files", "*.*")]
+            )
+            if filename:
+                task_manager.import_tasks(filename)
+                self.update_tasks_list()
+                if ctk:
+                    from tkinter import messagebox
+                messagebox.showinfo("成功", f"任务导入成功！")
+        except Exception as e:
+            logging.error(f"导入任务失败: {e}")
+            if ctk:
+                from tkinter import messagebox
+            messagebox.showerror("错误", f"导入任务失败: {e}")
+    
+    def export_tasks(self):
+        """导出任务"""
+        try:
+            from tkinter import filedialog
+            filename = filedialog.asksaveasfilename(
+                title="保存任务文件",
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt"), ("JSON files", "*.json")]
+            )
+            if filename:
+                task_manager.export_tasks(filename)
+                if ctk:
+                    from tkinter import messagebox
+                messagebox.showinfo("成功", f"任务导出成功！")
+        except Exception as e:
+            logging.error(f"导出任务失败: {e}")
+            if ctk:
+                from tkinter import messagebox
+            messagebox.showerror("错误", f"导出任务失败: {e}")
+    
+    def update_tasks_list(self):
+        """更新任务列表"""
+        try:
+            tasks = task_manager.get_tasks()
+            stats = task_manager.get_task_count()
+            
+            # 更新任务列表
+            self.tasks_list.configure(state='normal')
+            self.tasks_list.delete('1.0', 'end')
+            
+            for i, task in enumerate(tasks):
+                status_emoji = {
+                    'pending': '⏳',
+                    'running': '🔄',
+                    'completed': '✅',
+                    'failed': '❌'
+                }.get(task.status, '📋')
+                
+                self.tasks_list.insert('end', f"{i+1}. {status_emoji} [{task.status}] 优先级: {task.priority} - {task.title}\n")
+            
+            self.tasks_list.configure(state='disabled')
+            
+            # 更新任务统计
+            self.tasks_stats.configure(
+                text=f"📊 任务统计: 总计 {stats['total']} 个任务 | 待处理 {stats['pending']} | 运行中 {stats['running']} | 已完成 {stats['completed']} | 失败 {stats['failed']}"
+            )
+        except Exception as e:
+            logging.error(f"更新任务列表失败: {e}")
 
 if __name__ == "__main__":
     if ctk:
