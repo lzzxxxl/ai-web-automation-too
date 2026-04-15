@@ -639,11 +639,15 @@ class ModernAIAutomationGUI:
     
     def toggle_theme(self):
         if ctk:
-            current_mode = ctk.get_appearance_mode()
-            new_mode = "light" if current_mode == "dark" else "dark"
-            ctk.set_appearance_mode(new_mode)
-            if hasattr(self, 'theme_button'):
-                self.theme_button.configure(text="🌙 深色模式" if new_mode == "light" else "☀️ 浅色模式")
+            try:
+                current_mode = ctk.get_appearance_mode()
+                new_mode = "light" if current_mode == "dark" else "dark"
+                ctk.set_appearance_mode(new_mode)
+                if hasattr(self, 'theme_button'):
+                    self.theme_button.configure(text="🌙 深色模式" if new_mode == "light" else "☀️ 浅色模式")
+                logger.info(f"主题已切换为: {new_mode}")
+            except Exception as e:
+                logger.error(f"切换主题失败: {e}")
     
     def start_browser(self):
         """启动浏览器"""
@@ -678,7 +682,7 @@ class ModernAIAutomationGUI:
             debug_port = int(self.debug_port_browser.get())
             instance_id = self.instance_id_browser.get()
             
-            # 连接浏览器
+            # 连接浏览器（不自动启动）
             browser = browser_manager.connect_to_browser(browser_type, debug_port, instance_id)
             
             if browser:
@@ -690,7 +694,7 @@ class ModernAIAutomationGUI:
                 self.browser_status.configure(text="📊 浏览器状态: 连接失败")
                 if ctk:
                     from tkinter import messagebox
-                messagebox.showerror("错误", "浏览器连接失败，请检查浏览器是否已启动！")
+                messagebox.showerror("错误", "浏览器连接失败，请先点击'启动浏览器'按钮启动浏览器！")
         except Exception as e:
             logging.error(f"连接浏览器失败: {e}")
             self.browser_status.configure(text="📊 浏览器状态: 连接失败")

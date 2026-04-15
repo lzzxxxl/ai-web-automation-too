@@ -34,50 +34,53 @@ class BrowserManager:
         """
         try:
             playwright = self.start_playwright()
-            ws_endpoint = f"ws://127.0.0.1:{debug_port}/devtools/browser"
             
-            if browser_type.lower() == "chrome":
-                browser = playwright.chromium.connect_over_cdp(ws_endpoint)
-            elif browser_type.lower() == "edge":
-                browser = playwright.chromium.connect_over_cdp(ws_endpoint)
-            elif browser_type.lower() == "firefox":
-                browser = playwright.firefox.connect_over_cdp(ws_endpoint)
-            else:
-                logger.error(f"不支持的浏览器类型: {browser_type}")
-                return None
+            # 尝试连接到浏览器
+            for attempt in range(3):
+                try:
+                    # 尝试不同的WebSocket端点路径
+                    ws_endpoints = [
+                        f"ws://127.0.0.1:{debug_port}/devtools/browser",
+                        f"ws://127.0.0.1:{debug_port}/"
+                    ]
+                    
+                    for ws_endpoint in ws_endpoints:
+                        try:
+                            if browser_type.lower() == "chrome":
+                                browser = playwright.chromium.connect_over_cdp(ws_endpoint)
+                            elif browser_type.lower() == "edge":
+                                browser = playwright.chromium.connect_over_cdp(ws_endpoint)
+                            elif browser_type.lower() == "firefox":
+                                browser = playwright.firefox.connect_over_cdp(ws_endpoint)
+                            else:
+                                logger.error(f"不支持的浏览器类型: {browser_type}")
+                                return None
+                            
+                            self.browsers[instance_id] = browser
+                            logger.info(f"成功连接到{browser_type}浏览器实例 {instance_id}")
+                            return browser
+                        except Exception as e_endpoint:
+                            logger.debug(f"尝试端点 {ws_endpoint} 失败: {e_endpoint}")
+                            continue
+                    
+                    # 如果所有端点都失败，等待后重试
+                    if attempt < 2:
+                        logger.info(f"连接失败，{attempt+1}/3，等待后重试...")
+                        time.sleep(2)
+                        continue
+                    
+                except Exception as e:
+                    logger.error(f"连接浏览器失败: {e}")
+                    if attempt < 2:
+                        time.sleep(2)
+                        continue
             
-            self.browsers[instance_id] = browser
-            logger.info(f"成功连接到{browser_type}浏览器实例 {instance_id}")
-            return browser
+            # 所有尝试都失败，返回None
+            logger.info("所有连接尝试都失败")
+            return None
         except Exception as e:
             logger.error(f"连接浏览器失败: {e}")
-            logger.info("尝试自动启动浏览器...")
-            
-            # 尝试自动启动浏览器
-            if self.open_browser_with_debug(browser_type, debug_port):
-                # 等待浏览器启动
-                time.sleep(2)
-                # 再次尝试连接
-                try:
-                    # 使用127.0.0.1避免IPv6解析问题
-                    ws_endpoint = f"ws://127.0.0.1:{debug_port}/devtools/browser"
-                    if browser_type.lower() == "chrome":
-                        browser = playwright.chromium.connect_over_cdp(ws_endpoint)
-                    elif browser_type.lower() == "edge":
-                        browser = playwright.chromium.connect_over_cdp(ws_endpoint)
-                    elif browser_type.lower() == "firefox":
-                        browser = playwright.firefox.connect_over_cdp(ws_endpoint)
-                    
-                    self.browsers[instance_id] = browser
-                    logger.info(f"成功连接到{browser_type}浏览器实例 {instance_id}")
-                    return browser
-                except Exception as e2:
-                    logger.error(f"再次连接失败: {e2}")
-                    logger.info("请手动启动浏览器并开启远程调试模式")
-                    return None
-            else:
-                logger.error("启动浏览器失败，请手动启动")
-                return None
+            return None
     
     def get_or_create_page(self, instance_id: str = "default") -> Optional[Page]:
         """
@@ -327,19 +330,22 @@ class BrowserManager:
             import tempfile
             temp_dir = tempfile.mkdtemp(prefix="browser_profile_")
             
-            # 启动浏览器
+            # 启动浏览器（确保远程调试端口参数在最前面）
             cmd = [
                 browser_path,
                 f"--remote-debugging-port={debug_port}",
                 f"--user-data-dir={temp_dir}",
                 "--no-first-run",
-                "--no-default-browser-check"
+                "--no-default-browser-check",
+                "--disable-extensions",
+                "--disable-gpu",
+                "https://www.google.com"
             ]
             
             subprocess.Popen(cmd)
             logger.info(f"已启动{browser_type}浏览器，调试端口: {debug_port}，配置目录: {temp_dir}")
             # 等待浏览器启动
-            time.sleep(5)
+            time.sleep(8)
             return True
         except Exception as e:
             logger.error(f"启动浏览器失败: {e}")
