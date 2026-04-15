@@ -3,6 +3,7 @@ import time
 import logging
 import json
 import sys
+import argparse
 from typing import List, Optional
 
 from browser_manager import browser_manager
@@ -70,7 +71,7 @@ class AIAutomationTool:
         self.config[key] = value
         self.save_config()
     
-    def initialize(self) -> bool:
+    def initialize(self, file_path: Optional[str] = None, paste_text: Optional[str] = None) -> bool:
         """初始化工具"""
         try:
             # 创建保存目录
@@ -78,11 +79,25 @@ class AIAutomationTool:
                 os.makedirs(self.config["SAVE_PATH"], exist_ok=True)
             
             # 读取标题
-            if os.path.exists(self.config["QUESTION_FILE"]):
+            titles = []
+            if file_path and os.path.exists(file_path):
+                titles = title_manager.read_titles_from_file(file_path)
+                logger.info(f"从文件 {file_path} 读取标题")
+            elif paste_text:
+                titles = title_manager.read_titles_from_paste(paste_text)
+                logger.info("从粘贴文本读取标题")
+            elif os.path.exists(self.config["QUESTION_FILE"]):
                 titles = title_manager.read_titles_from_file(self.config["QUESTION_FILE"])
+                logger.info(f"从默认文件 {self.config['QUESTION_FILE']} 读取标题")
             else:
                 logger.warning(f"未找到标题文件: {self.config['QUESTION_FILE']}")
-                return False
+                # 尝试交互式输入
+                paste_text = self._get_user_input()
+                if paste_text:
+                    titles = title_manager.read_titles_from_paste(paste_text)
+                    logger.info("从交互式输入读取标题")
+                else:
+                    return False
             
             if not titles:
                 logger.warning("未读取到标题")
@@ -170,10 +185,10 @@ class AIAutomationTool:
             logger.error(f"处理任务失败: {e}")
             return False
     
-    def run(self):
+    def run(self, file_path: Optional[str] = None, paste_text: Optional[str] = None):
         """运行工具"""
         try:
-            if not self.initialize():
+            if not self.initialize(file_path, paste_text):
                 logger.error("初始化失败，无法运行")
                 return
             
@@ -236,8 +251,46 @@ class AIAutomationTool:
         """停止运行"""
         self.is_running = False
         logger.info("程序已停止")
+    
+    def _get_user_input(self) -> Optional[str]:
+        """获取用户交互式输入"""
+        print("\n未找到标题文件，请直接粘贴标题（每行一个，按Ctrl+D结束输入）:")
+        print("=" * 60)
+        lines = []
+        try:
+            while True:
+                line = input()
+                lines.append(line)
+        except EOFError:
+            pass
+        print("=" * 60)
+        input_text = "\n".join(lines)
+        if input_text.strip():
+            return input_text
+        return None
 
 if __name__ == "__main__":
-    # 示例用法
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description="AI网页全自动批量处理工具")
+    parser.add_argument("file", nargs="?", help="标题文件路径")
+    parser.add_argument("--paste", action="store_true", help="从剪贴板粘贴标题")
+    args = parser.parse_args()
+    
     tool = AIAutomationTool()
-    tool.run()
+    
+    # 处理命令行参数
+    file_path = args.file
+    paste_text = None
+    
+    if args.paste:
+        try:
+            import pyperclip
+            paste_text = pyperclip.paste()
+            if not paste_text:
+                print("剪贴板为空")
+                exit(1)
+        except Exception as e:
+            print(f"读取剪贴板失败: {e}")
+            exit(1)
+    
+    tool.run(file_path, paste_text)
