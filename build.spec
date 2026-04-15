@@ -3,7 +3,7 @@
 block_cipher = None
 
 a = Analysis(
-    ['gui_main.py'],
+    ['modern_gui.py'],
     pathex=[],
     binaries=[],
     datas=[
@@ -19,6 +19,16 @@ a = Analysis(
         'tkinter.filedialog',
         'tkinter.messagebox',
         'tkinter.scrolledtext',
+        'customtkinter',
+        'customtkinter.windows.widgets',
+        'customtkinter.windows.widgets.ctk_button',
+        'customtkinter.windows.widgets.ctk_entry',
+        'customtkinter.windows.widgets.ctk_label',
+        'customtkinter.windows.widgets.ctk_textbox',
+        'customtkinter.windows.widgets.ctk_progressbar',
+        'customtkinter.windows.widgets.ctk_scrollable_frame',
+        'customtkinter.windows.widgets.ctk_tabview',
+        'customtkinter.windows.widgets.ctk_combobox',
     ],
     hookspath=[],
     hooksconfig={},

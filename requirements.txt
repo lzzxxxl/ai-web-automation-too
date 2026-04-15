@@ -6,7 +6,8 @@ playwright
 # Clipboard operations
 pyperclip
 
-# GUI
+# Modern GUI
+customtkinter>=5.0.0
 pillow
 
 # Encoding detection
