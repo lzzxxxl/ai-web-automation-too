@@ -130,8 +130,14 @@ class ModernAIAutomationGUI:
         config_tab = tabview.add("⚙️ 配置")
         self.setup_config_tab_ctk(config_tab)
         
+        browser_tab = tabview.add("🌐 浏览器")
+        self.setup_browser_tab_ctk(browser_tab)
+        
         titles_tab = tabview.add("📝 标题")
         self.setup_titles_tab_ctk(titles_tab)
+        
+        tasks_tab = tabview.add("📋 任务")
+        self.setup_tasks_tab_ctk(tasks_tab)
         
         run_tab = tabview.add("▶️ 运行")
         self.setup_run_tab_ctk(run_tab)
@@ -205,8 +211,51 @@ class ModernAIAutomationGUI:
             row=row, column=0, columnspan=2, pady=20)
     
     def create_label_ctk(self, parent, text, row, col):
-        CTkLabel(parent, text=text, font=("Microsoft YaHei", 12)).grid(
-            row=row, column=col, sticky="e", pady=10, padx=10)
+        CTkLabel(parent, text=text, font=('Microsoft YaHei', 12)).grid(
+            row=row, column=col, sticky='e', pady=10, padx=10)
+    
+    def setup_browser_tab_ctk(self, parent):
+        scroll_frame = CTkScrollableFrame(parent, label_text='浏览器管理')
+        scroll_frame.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        row = 0
+        
+        self.create_label_ctk(scroll_frame, '浏览器类型:', row, 0)
+        self.browser_type_browser = CTkComboBox(scroll_frame, values=['chrome', 'edge', 'firefox'], state='readonly', width=300)
+        self.browser_type_browser.set(self.config['BROWSER_TYPE'])
+        self.browser_type_browser.grid(row=row, column=1, sticky='w', pady=10, padx=10)
+        row += 1
+        
+        self.create_label_ctk(scroll_frame, '调试端口:', row, 0)
+        self.debug_port_browser = CTkEntry(scroll_frame, placeholder_text='9222', width=300)
+        self.debug_port_browser.insert(0, str(self.config['DEBUG_PORT']))
+        self.debug_port_browser.grid(row=row, column=1, sticky='w', pady=10, padx=10)
+        row += 1
+        
+        self.create_label_ctk(scroll_frame, '浏览器实例ID:', row, 0)
+        self.instance_id_browser = CTkEntry(scroll_frame, placeholder_text='default', width=300)
+        self.instance_id_browser.insert(0, 'default')
+        self.instance_id_browser.grid(row=row, column=1, sticky='w', pady=10, padx=10)
+        row += 1
+        
+        # 浏览器操作按钮
+        btn_frame = CTkFrame(scroll_frame, fg_color='transparent')
+        btn_frame.grid(row=row, column=0, columnspan=2, pady=20, padx=10)
+        
+        CTkButton(btn_frame, text='🚀 启动浏览器', command=self.start_browser, 
+                  width=150, height=40, font=('Microsoft YaHei', 14)).pack(side='left', padx=10)
+        
+        CTkButton(btn_frame, text='🔗 连接浏览器', command=self.connect_browser, 
+                  width=150, height=40, font=('Microsoft YaHei', 14)).pack(side='left', padx=10)
+        
+        CTkButton(btn_frame, text='❌ 关闭浏览器', command=self.close_browser, 
+                  width=150, height=40, font=('Microsoft YaHei', 14), fg_color='#ef4444', hover_color='#dc2626').pack(side='left', padx=10)
+        row += 1
+        
+        # 浏览器状态
+        self.browser_status = CTkLabel(scroll_frame, text='📊 浏览器状态: 未连接', 
+                                      font=('Microsoft YaHei', 12))
+        self.browser_status.grid(row=row, column=0, columnspan=2, pady=10, padx=10)
     
     def setup_titles_tab_ctk(self, parent):
         CTkLabel(parent, text="在此处粘贴标题（每行一个）", 
@@ -535,6 +584,77 @@ class ModernAIAutomationGUI:
             ctk.set_appearance_mode(new_mode)
             if hasattr(self, 'theme_button'):
                 self.theme_button.configure(text="🌙 深色模式" if new_mode == "light" else "☀️ 浅色模式")
+    
+    def start_browser(self):
+        """启动浏览器"""
+        try:
+            browser_type = self.browser_type_browser.get()
+            debug_port = int(self.debug_port_browser.get())
+            
+            # 启动浏览器
+            success = browser_manager.open_browser_with_debug(browser_type, debug_port)
+            
+            if success:
+                self.browser_status.configure(text=f"📊 浏览器状态: {browser_type} 已启动")
+                if ctk:
+                    from tkinter import messagebox
+                messagebox.showinfo("成功", f"{browser_type}浏览器已成功启动！")
+            else:
+                self.browser_status.configure(text="📊 浏览器状态: 启动失败")
+                if ctk:
+                    from tkinter import messagebox
+                messagebox.showerror("错误", "浏览器启动失败，请检查日志！")
+        except Exception as e:
+            logging.error(f"启动浏览器失败: {e}")
+            self.browser_status.configure(text="📊 浏览器状态: 启动失败")
+            if ctk:
+                from tkinter import messagebox
+            messagebox.showerror("错误", f"启动浏览器失败: {e}")
+    
+    def connect_browser(self):
+        """连接浏览器"""
+        try:
+            browser_type = self.browser_type_browser.get()
+            debug_port = int(self.debug_port_browser.get())
+            instance_id = self.instance_id_browser.get()
+            
+            # 连接浏览器
+            browser = browser_manager.connect_to_browser(browser_type, debug_port, instance_id)
+            
+            if browser:
+                self.browser_status.configure(text=f"📊 浏览器状态: 已连接到 {browser_type} 实例 {instance_id}")
+                if ctk:
+                    from tkinter import messagebox
+                messagebox.showinfo("成功", f"已成功连接到{browser_type}浏览器！")
+            else:
+                self.browser_status.configure(text="📊 浏览器状态: 连接失败")
+                if ctk:
+                    from tkinter import messagebox
+                messagebox.showerror("错误", "浏览器连接失败，请检查浏览器是否已启动！")
+        except Exception as e:
+            logging.error(f"连接浏览器失败: {e}")
+            self.browser_status.configure(text="📊 浏览器状态: 连接失败")
+            if ctk:
+                from tkinter import messagebox
+            messagebox.showerror("错误", f"连接浏览器失败: {e}")
+    
+    def close_browser(self):
+        """关闭浏览器"""
+        try:
+            instance_id = self.instance_id_browser.get()
+            
+            # 关闭浏览器
+            browser_manager.close_browser(instance_id)
+            
+            self.browser_status.configure(text="📊 浏览器状态: 已关闭")
+            if ctk:
+                from tkinter import messagebox
+            messagebox.showinfo("成功", f"浏览器实例 {instance_id} 已关闭！")
+        except Exception as e:
+            logging.error(f"关闭浏览器失败: {e}")
+            if ctk:
+                from tkinter import messagebox
+            messagebox.showerror("错误", f"关闭浏览器失败: {e}")
 
 if __name__ == "__main__":
     if ctk:
