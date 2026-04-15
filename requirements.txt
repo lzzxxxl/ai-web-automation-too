@@ -15,7 +15,7 @@ pystray
 flask
 
 # Encoding detection
-chardet
+chardet>=5.2.0
 
 # Logging
 # Using standard library logging module
