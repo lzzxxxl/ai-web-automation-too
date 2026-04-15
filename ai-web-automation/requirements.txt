@@ -1,0 +1,16 @@
+# Dependencies for AI Webpage Automated Batch Processing Tool
+
+# Web automation
+playwright
+
+# Clipboard operations
+pyperclip
+
+# GUI
+pillow
+
+# Encoding detection
+chardet
+
+# Logging
+# Using standard library logging module

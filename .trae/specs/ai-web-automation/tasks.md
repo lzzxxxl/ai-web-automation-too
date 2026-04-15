@@ -19,13 +19,15 @@
 - **Description**:
   - 实现Chrome和Edge浏览器连接功能
   - 支持远程调试模式连接
+  - 支持同时连接多个浏览器实例
   - 验证浏览器连接状态
   - 处理连接失败的异常情况
 - **Acceptance Criteria Addressed**: AC-1
 - **Test Requirements**:
   - `programmatic` TR-2.1: 成功连接已打开的Chrome浏览器
   - `programmatic` TR-2.2: 成功连接已打开的Edge浏览器
-  - `programmatic` TR-2.3: 连接失败时给出明确提示
+  - `programmatic` TR-2.3: 成功同时连接多个浏览器实例
+  - `programmatic` TR-2.4: 连接失败时给出明确提示
 - **Notes**: 需要用户先开启浏览器的远程调试模式
 
 ## [ ] Task 3: 标题/问题管理模块实现
@@ -66,7 +68,7 @@
 - **Priority**: P0
 - **Depends On**: Task 1
 - **Description**:
-  - 内嵌用户现有剪贴板保存程序源码
+  - 内嵌用户现有剪贴板保存程序源码，保留其图形界面功能
   - 实现剪贴板内容读取功能
   - 实现标题匹配功能
   - 实现自动保存功能
@@ -75,6 +77,7 @@
   - `programmatic` TR-5.1: 成功读取剪贴板内容
   - `programmatic` TR-5.2: 成功匹配标题
   - `programmatic` TR-5.3: 成功保存到对应TXT文件
+  - `human-judgment` TR-5.4: 图形界面功能正常
 - **Notes**: 保持与用户原有剪贴板保存程序逻辑一致
 
 ## [ ] Task 6: 主程序逻辑与异常处理实现
