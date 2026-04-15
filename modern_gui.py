@@ -121,7 +121,7 @@ class ModernAIAutomationGUI:
         row = 0
         
         self.create_label_ctk(scroll_frame, "浏览器类型:", row, 0)
-        self.browser_type = CTkComboBox(scroll_frame, values=["chrome", "edge"], state="readonly", width=300)
+        self.browser_type = CTkComboBox(scroll_frame, values=["chrome", "edge", "firefox"], state="readonly", width=300)
         self.browser_type.set(self.config["BROWSER_TYPE"])
         self.browser_type.grid(row=row, column=1, sticky="w", pady=10, padx=10)
         row += 1
@@ -251,7 +251,7 @@ class ModernAIAutomationGUI:
         row = 0
         
         ttk.Label(parent, text="浏览器类型:").grid(row=row, column=0, sticky=tk.E, pady=5)
-        self.browser_type = ttk.Combobox(parent, values=["chrome", "edge"], state="readonly", width=30)
+        self.browser_type = ttk.Combobox(parent, values=["chrome", "edge", "firefox"], state="readonly", width=30)
         self.browser_type.set(self.config["BROWSER_TYPE"])
         self.browser_type.grid(row=row, column=1, sticky=tk.W, pady=5)
         row += 1

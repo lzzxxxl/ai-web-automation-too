@@ -25,7 +25,7 @@ class BrowserManager:
         连接到已打开的浏览器，如果未打开则尝试启动
         
         Args:
-            browser_type: 浏览器类型 (chrome, edge)
+            browser_type: 浏览器类型 (chrome, edge, firefox)
             debug_port: 远程调试端口
             instance_id: 实例ID，用于区分多个浏览器实例
             
@@ -40,6 +40,8 @@ class BrowserManager:
                 browser = playwright.chromium.connect_over_cdp(ws_endpoint)
             elif browser_type.lower() == "edge":
                 browser = playwright.chromium.connect_over_cdp(ws_endpoint)
+            elif browser_type.lower() == "firefox":
+                browser = playwright.firefox.connect_over_cdp(ws_endpoint)
             else:
                 logger.error(f"不支持的浏览器类型: {browser_type}")
                 return None
@@ -61,6 +63,8 @@ class BrowserManager:
                         browser = playwright.chromium.connect_over_cdp(ws_endpoint)
                     elif browser_type.lower() == "edge":
                         browser = playwright.chromium.connect_over_cdp(ws_endpoint)
+                    elif browser_type.lower() == "firefox":
+                        browser = playwright.firefox.connect_over_cdp(ws_endpoint)
                     
                     self.browsers[instance_id] = browser
                     logger.info(f"成功连接到{browser_type}浏览器实例 {instance_id}")
@@ -161,7 +165,7 @@ class BrowserManager:
         打开带远程调试模式的浏览器
         
         Args:
-            browser_type: 浏览器类型 (chrome, edge)
+            browser_type: 浏览器类型 (chrome, edge, firefox)
             debug_port: 远程调试端口
             
         Returns:
@@ -171,29 +175,41 @@ class BrowserManager:
             if browser_type.lower() == "chrome":
                 # 查找Chrome可执行文件路径
                 if os.name == "nt":  # Windows
-                    chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
-                    if not os.path.exists(chrome_path):
-                        chrome_path = r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+                    browser_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+                    if not os.path.exists(browser_path):
+                        browser_path = r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
                 else:  # macOS/Linux
-                    chrome_path = "/usr/bin/google-chrome"
-                    if not os.path.exists(chrome_path):
-                        chrome_path = "/usr/bin/chromium"
+                    browser_path = "/usr/bin/google-chrome"
+                    if not os.path.exists(browser_path):
+                        browser_path = "/usr/bin/chromium"
             
             elif browser_type.lower() == "edge":
                 # 查找Edge可执行文件路径
                 if os.name == "nt":  # Windows
-                    edge_path = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
-                    if not os.path.exists(edge_path):
-                        edge_path = r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+                    browser_path = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+                    if not os.path.exists(browser_path):
+                        browser_path = r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
                 else:  # macOS/Linux
-                    edge_path = "/usr/bin/microsoft-edge"
-                    if not os.path.exists(edge_path):
-                        edge_path = "/usr/bin/edge"
+                    browser_path = "/usr/bin/microsoft-edge"
+                    if not os.path.exists(browser_path):
+                        browser_path = "/usr/bin/edge"
+            
+            elif browser_type.lower() == "firefox":
+                # 查找Firefox可执行文件路径
+                if os.name == "nt":  # Windows
+                    browser_path = r"C:\Program Files\Mozilla Firefox\firefox.exe"
+                    if not os.path.exists(browser_path):
+                        browser_path = r"C:\Program Files (x86)\Mozilla Firefox\firefox.exe"
+                elif os.name == "darwin":  # macOS
+                    browser_path = "/Applications/Firefox.app/Contents/MacOS/firefox"
+                else:  # Linux
+                    browser_path = "/usr/bin/firefox"
+                    if not os.path.exists(browser_path):
+                        browser_path = "/usr/bin/firefox-bin"
             else:
                 logger.error(f"不支持的浏览器类型: {browser_type}")
                 return False
             
-            browser_path = chrome_path if browser_type.lower() == "chrome" else edge_path
             if not os.path.exists(browser_path):
                 logger.error(f"找不到{browser_type}浏览器可执行文件")
                 return False
