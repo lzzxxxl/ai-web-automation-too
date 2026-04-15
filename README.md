@@ -1,106 +1,184 @@
-# 剪贴板自动保存
+# AI网页全自动批量处理工具
 
-一个简洁高效的 Windows 剪贴板监听工具，自动将剪贴板内容保存到匹配的本地文件中。
+一个整合网页自动化操作与剪贴板保存功能的一体化工具，用于批量向网页版AI（如ChatGPT、DeepSeek、Grok等）提交问题并自动保存回复结果。
 
 ## 功能特性
 
-- **智能标题提取**：自动从剪贴板内容中识别文章/文件标题
-- **自动匹配保存**：根据标题匹配本地 TXT 文件，自动保存内容
-- **多主题支持**：支持黑色极简、白色极简、粉色三种主题
-- **窗口置顶**：可选择将窗口始终保持在最前面
-- **轻量高效**：占用资源少，后台静默运行
+- **浏览器控制**：支持连接已打开的Chrome和Edge浏览器，保留登录状态，支持同时连接多个浏览器实例
+- **标题管理**：支持从TXT文件读取或手动粘贴批量标题，自动去重，生成有序任务队列
+- **AI交互**：自动定位输入框、发送按钮，监控AI输出状态，处理生成中断，完成后自动复制内容
+- **剪贴板整合**：内嵌用户现有剪贴板保存程序，自动读取剪贴板内容，匹配标题并保存到对应文件
+- **无人值守**：全程自动执行任务，支持异常重试，记录错误日志，支持手动终止
+- **多平台支持**：兼容Windows和macOS系统
 
-## 界面预览
+## 系统要求
 
-[待添加截图]
+- Python 3.8及以上
+- Chrome或Edge浏览器
+- 操作系统：Windows 10+ 或 macOS
 
-## 使用方法
+## 安装步骤
 
-### 方式一：直接运行
+### 1. 克隆或下载项目
 
-1. 双击 `剪贴板自动保存.exe` 运行程序
-2. 点击"选择"按钮，选择包含 TXT 文件的文件夹
-3. 点击"开始监听"启动剪贴板监控
-4. 在任意应用中复制内容，程序自动匹配并保存
-
-### 方式二：从源码运行
+### 2. 安装依赖
 
 ```bash
-# 安装依赖
-pip install pyperclip
-
-# 运行程序
-python clipboard_watcher.py
+pip install -r requirements.txt
+playwright install
 ```
 
-### 方式三：打包为 exe
+### 3. 配置浏览器
 
-```bash
-pip install pyinstaller
-pyinstaller 剪贴板自动保存.spec
+使用提供的脚本启动浏览器并开启远程调试模式：
+
+- **Windows**：双击 `start_chrome_debug.bat` 或 `start_edge_debug.bat`
+- **macOS/Linux**：运行 `./start_chrome_debug.sh` 或 `./start_edge_debug.sh`
+
+### 4. 准备标题文件
+
+在项目目录创建 `questions.txt` 文件，每行一个标题/问题：
+
+```
+什么是Python?
+如何学习Python编程?
+Python有哪些常用库?
 ```
 
-## 工作原理
+### 5. 配置参数
 
-1. 监听剪贴板变化，检测复制的内容
-2. 从内容中提取标题（支持多种格式）
-3. 清洗标题（只保留中文、英文、数字）
-4. 在指定文件夹中匹配同名的 TXT 文件
-5. 如果开启自动保存，内容直接写入匹配的文件
-
-## 标题识别格式
-
-程序支持识别以下格式的标题：
-
-| 格式 | 示例 |
-|------|------|
-| 原文章标题 | `原文章标题：如何学习Python -->`
-
-| 原文件标题 | `原文件标题：技术文档.txt -->`
-| HTML title | `<title>页面标题</title>` |
-| Markdown title | `title: 文章标题` |
-
-## 配置文件
-
-程序配置存储在 `watcher_config.json` 中：
+编辑 `config.json` 文件，根据需要修改配置：
 
 ```json
 {
-  "last_folder": "上次使用的文件夹路径",
-  "auto_save": true,
-  "always_on_top": true,
-  "theme": "pink"
+  "BROWSER_TYPE": "chrome",  // 可选: chrome, edge
+  "QUESTION_FILE": "questions.txt",
+  "CONTINUE_MAX_CLICK": 10,  // 最大点击继续生成次数
+  "WAIT_STABLE_TIME": 5,  // 内容稳定判定时间（秒）
+  "RETRY_COUNT": 3,  // 异常重试次数
+  "SAVE_PATH": "./output",  // 保存路径
+  "DEBUG_PORT": 9222  // 调试端口
 }
 ```
 
-| 配置项 | 类型 | 说明 |
-|--------|------|------|
-| `last_folder` | string | 上次使用的文件夹路径 |
-| `auto_save` | boolean | 是否自动保存到匹配文件 |
-| `always_on_top` | boolean | 窗口是否置顶 |
-| `theme` | string | 主题：`black`、`white` 或 `pink` |
+## 使用方法
+
+### 方法一：使用默认标题文件
+
+1. 启动浏览器（使用提供的脚本开启远程调试模式）
+2. 在浏览器中登录所需的网页AI平台（如ChatGPT、DeepSeek等）
+3. 运行主程序：
+
+```bash
+python main.py
+```
+
+### 方法二：指定标题文件（支持拖拽）
+
+1. 启动浏览器（使用提供的脚本开启远程调试模式）
+2. 在浏览器中登录所需的网页AI平台（如ChatGPT、DeepSeek等）
+3. 运行主程序并指定标题文件路径：
+
+```bash
+python main.py path/to/questions.txt
+```
+
+或者直接拖拽txt文件到命令行：
+
+```bash
+python main.py [拖拽txt文件到这里]
+```
+
+### 方法三：从剪贴板粘贴标题
+
+1. 启动浏览器（使用提供的脚本开启远程调试模式）
+2. 在浏览器中登录所需的网页AI平台（如ChatGPT、DeepSeek等）
+3. 复制要处理的标题（每行一个）
+4. 运行主程序：
+
+```bash
+python main.py --paste
+```
+
+### 方法四：交互式输入标题
+
+1. 启动浏览器（使用提供的脚本开启远程调试模式）
+2. 在浏览器中登录所需的网页AI平台（如ChatGPT、DeepSeek等）
+3. 运行主程序（不指定文件）：
+
+```bash
+python main.py
+```
+
+4. 当提示时，直接粘贴标题（每行一个），按Ctrl+D结束输入
+
+### 执行流程
+
+程序会自动执行以下操作：
+   - 读取标题（从文件、剪贴板或交互式输入）
+   - 连接浏览器
+   - 按顺序处理每个标题
+   - 自动发送问题
+   - 监控AI输出
+   - 复制回复内容
+   - 保存到对应文件
 
 ## 项目结构
 
 ```
-├── clipboard_watcher.py    # 主程序源代码
-├── watcher_config.json     # 配置文件
-├── zi.ico                  # 程序图标
-├── zi.jpg                  # 图片素材
-└── 剪贴板自动保存.spec      # PyInstaller 打包配置
+├── browser_manager.py    # 浏览器管理模块
+├── title_manager.py      # 标题管理模块
+├── ai_automation.py      # AI自动化交互模块
+├── clipboard_integration.py  # 剪贴板集成模块
+├── clipboard_watcher.py  # 剪贴板监听程序
+├── main.py              # 主程序
+├── test_system.py       # 测试脚本
+├── requirements.txt     # 依赖文件
+├── questions.txt        # 标题文件
+├── start_chrome_debug.bat  # Windows启动Chrome调试模式
+├── start_edge_debug.bat    # Windows启动Edge调试模式
+├── start_chrome_debug.sh   # macOS/Linux启动Chrome调试模式
+└── start_edge_debug.sh     # macOS/Linux启动Edge调试模式
 ```
 
-## 系统要求
+## 注意事项
 
-- Windows 操作系统
-- 无需 Python 环境（使用打包后的 exe）
+1. 确保浏览器已开启远程调试模式
+2. 确保在浏览器中已登录所需的网页AI平台
+3. 标题文件编码支持UTF-8和ANSI
+4. 程序会自动去重标题，确保每个标题只处理一次
+5. 遇到异常时会自动重试，重试失败后会跳过当前任务继续执行
+6. 运行过程中请保持浏览器后台运行，不要关闭浏览器窗口
 
-## 技术栈
+## 常见问题
 
-- **GUI**：tkinter（Python 内置）
-- **剪贴板**：pyperclip
-- **打包**：PyInstaller
+### Q: 浏览器连接失败怎么办？
+A: 请确保：
+- 浏览器已启动
+- 已使用提供的脚本开启远程调试模式
+- 配置文件中的浏览器类型和端口正确
 
-## License
+### Q: 标题读取失败怎么办？
+A: 请确保：
+- `questions.txt` 文件存在
+- 文件编码正确（UTF-8或ANSI）
+- 文件格式正确（每行一个标题）
+
+### Q: 保存文件失败怎么办？
+A: 请确保：
+- 保存路径存在且有写入权限
+- 标题不包含无效的文件名字符
+
+### Q: 程序运行过程中卡住怎么办？
+A: 可以按 Ctrl+C 终止程序，然后检查日志文件分析问题
+
+## 扩展功能
+
+- 支持多账号并行操作（同时连接多个浏览器实例）
+- 支持自定义保存格式
+- 支持任务进度保存与恢复
+- 支持批量导出日志
+
+## 许可证
 
 MIT License
