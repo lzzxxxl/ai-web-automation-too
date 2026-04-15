@@ -645,9 +645,9 @@ class ModernAIAutomationGUI:
                 ctk.set_appearance_mode(new_mode)
                 if hasattr(self, 'theme_button'):
                     self.theme_button.configure(text="🌙 深色模式" if new_mode == "light" else "☀️ 浅色模式")
-                logger.info(f"主题已切换为: {new_mode}")
+                logging.info(f"主题已切换为: {new_mode}")
             except Exception as e:
-                logger.error(f"切换主题失败: {e}")
+                logging.error(f"切换主题失败: {e}")
     
     def start_browser(self):
         """启动浏览器"""
