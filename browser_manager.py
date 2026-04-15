@@ -34,7 +34,7 @@ class BrowserManager:
         """
         try:
             playwright = self.start_playwright()
-            ws_endpoint = f"ws://localhost:{debug_port}/devtools/browser"
+            ws_endpoint = f"ws://127.0.0.1:{debug_port}/devtools/browser"
             
             if browser_type.lower() == "chrome":
                 browser = playwright.chromium.connect_over_cdp(ws_endpoint)
@@ -59,6 +59,8 @@ class BrowserManager:
                 time.sleep(2)
                 # 再次尝试连接
                 try:
+                    # 使用127.0.0.1避免IPv6解析问题
+                    ws_endpoint = f"ws://127.0.0.1:{debug_port}/devtools/browser"
                     if browser_type.lower() == "chrome":
                         browser = playwright.chromium.connect_over_cdp(ws_endpoint)
                     elif browser_type.lower() == "edge":
@@ -321,17 +323,23 @@ class BrowserManager:
                 logger.error(f"找不到{browser_type}浏览器可执行文件")
                 return False
             
+            # 使用临时目录作为浏览器配置文件路径，避免权限问题
+            import tempfile
+            temp_dir = tempfile.mkdtemp(prefix="browser_profile_")
+            
             # 启动浏览器
             cmd = [
                 browser_path,
                 f"--remote-debugging-port={debug_port}",
-                "--user-data-dir=./browser_profile"
+                f"--user-data-dir={temp_dir}",
+                "--no-first-run",
+                "--no-default-browser-check"
             ]
             
             subprocess.Popen(cmd)
-            logger.info(f"已启动{browser_type}浏览器，调试端口: {debug_port}")
+            logger.info(f"已启动{browser_type}浏览器，调试端口: {debug_port}，配置目录: {temp_dir}")
             # 等待浏览器启动
-            time.sleep(3)
+            time.sleep(5)
             return True
         except Exception as e:
             logger.error(f"启动浏览器失败: {e}")

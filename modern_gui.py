@@ -469,6 +469,7 @@ class ModernAIAutomationGUI:
         logger.addHandler(text_handler)
     
     def browse_file(self):
+        from tkinter import filedialog
         filename = filedialog.askopenfilename(
             title="选择标题文件",
             filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
@@ -478,6 +479,7 @@ class ModernAIAutomationGUI:
             self.question_file.insert(0 if not ctk else "0", filename)
     
     def browse_path(self):
+        from tkinter import filedialog
         path = filedialog.askdirectory(title="选择保存路径")
         if path:
             self.save_path.delete(0, tk.END if not ctk else "0")
@@ -599,25 +601,32 @@ class ModernAIAutomationGUI:
             self.root.bind('<F6>', lambda e: self.stop_tool())
     
     def setup_tray_icon(self):
-        def create_image():    
-            width = 64
-            height = 64
-            image = Image.new('RGB', (width, height), color=(20, 20, 60))
-            d = ImageDraw.Draw(image)
-            d.text((10, 10), "🤖", fill=(255, 255, 255), font_size=40)
-            return image
-        
-        menu = (
-            item('显示窗口', lambda: self.show_window()),
-            item('退出', lambda: self.exit_app())
-        )
-        
-        self.tray_icon = pystray.Icon('AI自动化工具', create_image(), 'AI网页全自动批量处理工具', menu)
-        
-        def run_tray():
-            self.tray_icon.run()
-        
-        threading.Thread(target=run_tray, daemon=True).start()
+        try:
+            def create_image():    
+                width = 64
+                height = 64
+                image = Image.new('RGB', (width, height), color=(20, 20, 60))
+                d = ImageDraw.Draw(image)
+                d.text((10, 10), "🤖", fill=(255, 255, 255), font_size=40)
+                return image
+            
+            menu = (
+                item('显示窗口', lambda: self.show_window()),
+                item('退出', lambda: self.exit_app())
+            )
+            
+            self.tray_icon = pystray.Icon('AI自动化工具', create_image(), 'AI网页全自动批量处理工具', menu)
+            
+            def run_tray():
+                try:
+                    self.tray_icon.run()
+                except Exception:
+                    pass
+            
+            threading.Thread(target=run_tray, daemon=True).start()
+        except Exception:
+            # 在无头环境中跳过托盘图标
+            pass
     
     def show_window(self):
         self.root.deiconify()
