@@ -9,6 +9,10 @@ pyperclip
 # Modern GUI
 customtkinter>=5.0.0
 pillow
+pystray
+
+# API Server
+flask
 
 # Encoding detection
 chardet

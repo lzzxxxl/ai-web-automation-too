@@ -4,12 +4,18 @@ import logging
 import json
 import sys
 import argparse
+import traceback
 from typing import List, Optional
+import urllib3
 
 from browser_manager import browser_manager
 from title_manager import title_manager
 from ai_automation import AIAutomation
 from clipboard_integration import clipboard_integration
+from plugin_system import plugin_system
+
+# 禁用urllib3的警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -22,6 +28,7 @@ class AIAutomationTool:
         self.current_task_index = 0
         self.tasks = []
         self.results = []
+        self.state_file = "state.json"  # 状态保存文件
     
     def load_config(self) -> dict:
         """加载配置文件"""
@@ -67,6 +74,47 @@ class AIAutomationTool:
         except Exception as e:
             logger.error(f"保存配置文件失败: {e}")
     
+    def save_state(self):
+        """保存当前状态"""
+        try:
+            state = {
+                "current_task_index": self.current_task_index,
+                "tasks": self.tasks,
+                "results": self.results,
+                "is_running": self.is_running
+            }
+            with open(self.state_file, 'w', encoding='utf-8') as f:
+                json.dump(state, f, ensure_ascii=False, indent=2)
+            logger.info(f"已保存状态: {self.state_file}")
+        except Exception as e:
+            logger.error(f"保存状态失败: {e}")
+    
+    def load_state(self) -> bool:
+        """加载状态"""
+        try:
+            if os.path.exists(self.state_file):
+                with open(self.state_file, 'r', encoding='utf-8') as f:
+                    state = json.load(f)
+                self.current_task_index = state.get("current_task_index", 0)
+                self.tasks = state.get("tasks", [])
+                self.results = state.get("results", [])
+                self.is_running = state.get("is_running", False)
+                logger.info(f"已加载状态: {self.state_file}")
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"加载状态失败: {e}")
+            return False
+    
+    def clear_state(self):
+        """清除状态文件"""
+        try:
+            if os.path.exists(self.state_file):
+                os.remove(self.state_file)
+                logger.info(f"已清除状态文件: {self.state_file}")
+        except Exception as e:
+            logger.error(f"清除状态文件失败: {e}")
+    
     def set_config(self, key: str, value):
         """设置配置"""
         self.config[key] = value
@@ -75,38 +123,44 @@ class AIAutomationTool:
     def initialize(self, file_path: Optional[str] = None, paste_text: Optional[str] = None) -> bool:
         """初始化工具"""
         try:
-            # 创建保存目录
-            if not os.path.exists(self.config["SAVE_PATH"]):
-                os.makedirs(self.config["SAVE_PATH"], exist_ok=True)
-            
-            # 读取标题
-            titles = []
-            if file_path and os.path.exists(file_path):
-                titles = title_manager.read_titles_from_file(file_path)
-                logger.info(f"从文件 {file_path} 读取标题")
-            elif paste_text:
-                titles = title_manager.read_titles_from_paste(paste_text)
-                logger.info("从粘贴文本读取标题")
-            elif os.path.exists(self.config["QUESTION_FILE"]):
-                titles = title_manager.read_titles_from_file(self.config["QUESTION_FILE"])
-                logger.info(f"从默认文件 {self.config['QUESTION_FILE']} 读取标题")
+            # 检查是否有崩溃恢复状态
+            if self.load_state() and self.tasks and self.current_task_index < len(self.tasks):
+                logger.info(f"发现崩溃恢复状态，将从任务 {self.current_task_index + 1} 开始继续执行")
             else:
-                logger.warning(f"未找到标题文件: {self.config['QUESTION_FILE']}")
-                # 尝试交互式输入
-                paste_text = self._get_user_input()
-                if paste_text:
+                # 创建保存目录
+                if not os.path.exists(self.config["SAVE_PATH"]):
+                    os.makedirs(self.config["SAVE_PATH"], exist_ok=True)
+                
+                # 读取标题
+                titles = []
+                if file_path and os.path.exists(file_path):
+                    titles = title_manager.read_titles_from_file(file_path)
+                    logger.info(f"从文件 {file_path} 读取标题")
+                elif paste_text:
                     titles = title_manager.read_titles_from_paste(paste_text)
-                    logger.info("从交互式输入读取标题")
+                    logger.info("从粘贴文本读取标题")
+                elif os.path.exists(self.config["QUESTION_FILE"]):
+                    titles = title_manager.read_titles_from_file(self.config["QUESTION_FILE"])
+                    logger.info(f"从默认文件 {self.config['QUESTION_FILE']} 读取标题")
                 else:
+                    logger.warning(f"未找到标题文件: {self.config['QUESTION_FILE']}")
+                    # 尝试交互式输入
+                    paste_text = self._get_user_input()
+                    if paste_text:
+                        titles = title_manager.read_titles_from_paste(paste_text)
+                        logger.info("从交互式输入读取标题")
+                    else:
+                        return False
+                
+                if not titles:
+                    logger.warning("未读取到标题")
                     return False
-            
-            if not titles:
-                logger.warning("未读取到标题")
-                return False
-            
-            # 去重
-            self.tasks = title_manager.get_task_queue()
-            logger.info(f"任务队列已生成，共 {len(self.tasks)} 个任务")
+                
+                # 去重
+                self.tasks = title_manager.get_task_queue()
+                logger.info(f"任务队列已生成，共 {len(self.tasks)} 个任务")
+                self.current_task_index = 0
+                self.results = []
             
             # 连接浏览器
             browser = browser_manager.connect_to_browser(
@@ -127,46 +181,60 @@ class AIAutomationTool:
             return True
         except Exception as e:
             logger.error(f"初始化失败: {e}")
+            logger.error(traceback.format_exc())
             return False
     
     def process_task(self, title: str) -> bool:
         """处理单个任务"""
         try:
+            # 触发任务开始前钩子
+            plugin_system.trigger_hook("before_task", title)
+            
             # 获取页面
             page = browser_manager.get_or_create_page(self.config["INSTANCE_ID"])
             if not page:
                 logger.error("获取页面失败")
+                plugin_system.trigger_hook("task_failed", title, "获取页面失败")
                 return False
             
             # 初始化AI自动化
             ai = AIAutomation(page)
             ai.set_continue_max_click(self.config["CONTINUE_MAX_CLICK"])
             ai.set_wait_stable_time(self.config["WAIT_STABLE_TIME"])
+            ai.set_retry_count(self.config["RETRY_COUNT"])
             
             # 发送消息
             retry_count = 0
             while retry_count < self.config["RETRY_COUNT"]:
-                if ai.send_message(title):
-                    break
+                try:
+                    if ai.send_message(title):
+                        break
+                except Exception as e:
+                    logger.warning(f"发送消息时发生异常: {e}")
                 retry_count += 1
                 logger.warning(f"发送消息失败，重试 {retry_count}/{self.config['RETRY_COUNT']}")
                 time.sleep(2)
             
             if retry_count >= self.config["RETRY_COUNT"]:
                 logger.error(f"发送消息失败，已达到最大重试次数")
+                plugin_system.trigger_hook("task_failed", title, "发送消息失败")
                 return False
             
             # 监控输出
             retry_count = 0
             while retry_count < self.config["RETRY_COUNT"]:
-                if ai.monitor_output():
-                    break
+                try:
+                    if ai.monitor_output():
+                        break
+                except Exception as e:
+                    logger.warning(f"监控输出时发生异常: {e}")
                 retry_count += 1
                 logger.warning(f"监控输出失败，重试 {retry_count}/{self.config['RETRY_COUNT']}")
                 time.sleep(2)
             
             if retry_count >= self.config["RETRY_COUNT"]:
                 logger.error(f"监控输出失败，已达到最大重试次数")
+                plugin_system.trigger_hook("task_failed", title, "监控输出失败")
                 return False
             
             # 设置当前标题用于剪贴板保存
@@ -176,30 +244,41 @@ class AIAutomationTool:
             content = clipboard_integration.wait_for_clipboard_content()
             if not content:
                 logger.error("未获取到剪贴板内容")
+                plugin_system.trigger_hook("task_failed", title, "未获取到剪贴板内容")
                 return False
             
             # 等待保存完成
             time.sleep(2)
             
             logger.info(f"任务处理完成: {title}")
+            # 触发任务完成后钩子
+            plugin_system.trigger_hook("after_task", title, content)
             return True
         except Exception as e:
             logger.error(f"处理任务失败: {e}")
+            logger.error(traceback.format_exc())
+            plugin_system.trigger_hook("task_failed", title, str(e))
             return False
     
     def run(self, file_path: Optional[str] = None, paste_text: Optional[str] = None):
         """运行工具"""
         try:
+            # 触发运行开始前钩子
+            plugin_system.trigger_hook("before_run", file_path, paste_text)
+            
             if not self.initialize(file_path, paste_text):
                 logger.error("初始化失败，无法运行")
+                plugin_system.trigger_hook("run_failed", "初始化失败")
                 return
             
             self.is_running = True
-            self.current_task_index = 0
             
             while self.is_running and self.current_task_index < len(self.tasks):
                 title = self.tasks[self.current_task_index]
                 logger.info(f"正在处理任务 {self.current_task_index + 1}/{len(self.tasks)}: {title}")
+                
+                # 自动保存状态
+                self.save_state()
                 
                 success = self.process_task(title)
                 self.results.append({"title": title, "success": success})
@@ -212,10 +291,21 @@ class AIAutomationTool:
             
             logger.info("所有任务处理完成")
             self.print_summary()
+            # 触发运行完成后钩子
+            plugin_system.trigger_hook("after_run", self.results)
+            # 任务完成后清除状态文件
+            self.clear_state()
         except KeyboardInterrupt:
             logger.info("用户终止程序")
+            # 保存当前状态
+            self.save_state()
+            plugin_system.trigger_hook("run_interrupted")
         except Exception as e:
             logger.error(f"运行失败: {e}")
+            logger.error(traceback.format_exc())
+            # 保存当前状态以便恢复
+            self.save_state()
+            plugin_system.trigger_hook("run_failed", str(e))
         finally:
             self.cleanup()
     
@@ -245,9 +335,14 @@ class AIAutomationTool:
             # 关闭浏览器
             browser_manager.close_all()
             
+            # 如果任务已完成，清除状态文件
+            if not self.is_running and self.current_task_index >= len(self.tasks):
+                self.clear_state()
+            
             logger.info("资源已清理")
         except Exception as e:
             logger.error(f"清理资源失败: {e}")
+            logger.error(traceback.format_exc())
     
     def stop(self):
         """停止运行"""

@@ -13,6 +13,14 @@ except ImportError:
     from tkinter import ttk, filedialog, messagebox, scrolledtext
     ctk = None
 
+try:
+    from pystray import MenuItem as item
+    import pystray
+    from PIL import Image, ImageDraw
+    has_tray = True
+except ImportError:
+    has_tray = False
+
 from browser_manager import browser_manager
 from title_manager import title_manager
 from ai_automation import AIAutomation
@@ -51,9 +59,13 @@ class ModernAIAutomationGUI:
         self.config = self.load_config()
         self.is_running = False
         self.tool = None
+        self.tray_icon = None
         
         self.setup_ui()
         self.setup_logging()
+        self.setup_shortcuts()
+        if has_tray:
+            self.setup_tray_icon()
     
     def load_config(self):
         default_config = {
@@ -98,9 +110,19 @@ class ModernAIAutomationGUI:
         header = CTkFrame(main_container, height=70, corner_radius=0)
         header.pack(fill="x", padx=0, pady=0)
         
-        title_label = CTkLabel(header, text="🤖 AI网页全自动批量处理工具", 
+        header_left = CTkFrame(header, fg_color="transparent")
+        header_left.pack(side="left", padx=20, pady=10)
+        
+        title_label = CTkLabel(header_left, text="🤖 AI网页全自动批量处理工具", 
                                 font=("Microsoft YaHei", 24, "bold"))
-        title_label.pack(pady=20)
+        title_label.pack()
+        
+        header_right = CTkFrame(header, fg_color="transparent")
+        header_right.pack(side="right", padx=20, pady=10)
+        
+        self.theme_button = CTkButton(header_right, text="☀️ 浅色模式", 
+                                     command=self.toggle_theme, width=120, height=30)
+        self.theme_button.pack(side="right", padx=10)
         
         tabview = CTkTabview(main_container)
         tabview.pack(fill="both", expand=True, padx=20, pady=20)
@@ -463,6 +485,56 @@ class ModernAIAutomationGUI:
         else:
             self.start_btn.config(state=tk.NORMAL)
             self.stop_btn.config(state=tk.DISABLED)
+    
+    def setup_shortcuts(self):
+        if ctk:
+            self.root.bind('<Control-s>', lambda e: self.save_current_config())
+            self.root.bind('<Control-q>', lambda e: self.exit_app())
+            self.root.bind('<F5>', lambda e: self.start_tool())
+            self.root.bind('<F6>', lambda e: self.stop_tool())
+        else:
+            self.root.bind('<Control-s>', lambda e: self.save_current_config())
+            self.root.bind('<Control-q>', lambda e: self.exit_app())
+            self.root.bind('<F5>', lambda e: self.start_tool())
+            self.root.bind('<F6>', lambda e: self.stop_tool())
+    
+    def setup_tray_icon(self):
+        def create_image():    
+            width = 64
+            height = 64
+            image = Image.new('RGB', (width, height), color=(20, 20, 60))
+            d = ImageDraw.Draw(image)
+            d.text((10, 10), "🤖", fill=(255, 255, 255), font_size=40)
+            return image
+        
+        menu = (
+            item('显示窗口', lambda: self.show_window()),
+            item('退出', lambda: self.exit_app())
+        )
+        
+        self.tray_icon = pystray.Icon('AI自动化工具', create_image(), 'AI网页全自动批量处理工具', menu)
+        
+        def run_tray():
+            self.tray_icon.run()
+        
+        threading.Thread(target=run_tray, daemon=True).start()
+    
+    def show_window(self):
+        self.root.deiconify()
+        self.root.lift()
+    
+    def exit_app(self):
+        if self.tray_icon:
+            self.tray_icon.stop()
+        self.root.destroy()
+    
+    def toggle_theme(self):
+        if ctk:
+            current_mode = ctk.get_appearance_mode()
+            new_mode = "light" if current_mode == "dark" else "dark"
+            ctk.set_appearance_mode(new_mode)
+            if hasattr(self, 'theme_button'):
+                self.theme_button.configure(text="🌙 深色模式" if new_mode == "light" else "☀️ 浅色模式")
 
 if __name__ == "__main__":
     if ctk:
