@@ -22,7 +22,7 @@ class BrowserManager:
     
     def connect_to_browser(self, browser_type: str, debug_port: int = 9222, instance_id: str = "default") -> Optional[Browser]:
         """
-        连接到已打开的浏览器
+        连接到已打开的浏览器，如果未打开则尝试启动
         
         Args:
             browser_type: 浏览器类型 (chrome, edge)
@@ -49,8 +49,29 @@ class BrowserManager:
             return browser
         except Exception as e:
             logger.error(f"连接浏览器失败: {e}")
-            logger.info("请确保浏览器已打开并开启了远程调试模式")
-            return None
+            logger.info("尝试自动启动浏览器...")
+            
+            # 尝试自动启动浏览器
+            if self.open_browser_with_debug(browser_type, debug_port):
+                # 等待浏览器启动
+                time.sleep(2)
+                # 再次尝试连接
+                try:
+                    if browser_type.lower() == "chrome":
+                        browser = playwright.chromium.connect_over_cdp(ws_endpoint)
+                    elif browser_type.lower() == "edge":
+                        browser = playwright.chromium.connect_over_cdp(ws_endpoint)
+                    
+                    self.browsers[instance_id] = browser
+                    logger.info(f"成功连接到{browser_type}浏览器实例 {instance_id}")
+                    return browser
+                except Exception as e2:
+                    logger.error(f"再次连接失败: {e2}")
+                    logger.info("请手动启动浏览器并开启远程调试模式")
+                    return None
+            else:
+                logger.error("启动浏览器失败，请手动启动")
+                return None
     
     def get_or_create_page(self, instance_id: str = "default") -> Optional[Page]:
         """
