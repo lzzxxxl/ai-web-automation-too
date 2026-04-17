@@ -567,10 +567,11 @@ class ModernAIAutomationGUI:
             self.root.after(0, lambda: messagebox.showinfo("完成", "所有任务处理完成！"))
             
         except Exception as e:
-            logging.error(f"运行失败: {e}")
+            error_msg = f"运行失败: {e}"
+            logging.error(error_msg)
             if ctk:
                 from tkinter import messagebox
-            self.root.after(0, lambda: messagebox.showerror("错误", f"运行失败: {e}"))
+            self.root.after(0, lambda msg=error_msg: messagebox.showerror("错误", msg))
         finally:
             self.root.after(0, self.reset_buttons)
     
@@ -644,7 +645,8 @@ class ModernAIAutomationGUI:
                 new_mode = "light" if current_mode == "dark" else "dark"
                 ctk.set_appearance_mode(new_mode)
                 if hasattr(self, 'theme_button'):
-                    self.theme_button.configure(text="🌙 深色模式" if new_mode == "light" else "☀️ 浅色模式")
+                    new_text = "🌙 深色模式" if new_mode == "light" else "☀️ 浅色模式"
+                    self.theme_button.configure(text=new_text)
                 print(f"主题已切换为: {new_mode}")
             except Exception as e:
                 print(f"切换主题失败: {e}")

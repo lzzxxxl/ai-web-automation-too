@@ -17,5 +17,8 @@ flask
 # Encoding detection
 chardet>=5.2.0
 
+# HTTP requests
+urllib3
+
 # Logging
 # Using standard library logging module
