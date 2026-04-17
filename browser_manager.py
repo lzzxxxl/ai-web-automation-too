@@ -35,34 +35,34 @@ class BrowserManager:
         try:
             playwright = self.start_playwright()
             
-            # 使用临时目录
-            temp_dir = tempfile.mkdtemp(prefix="browser_profile_")
+            # 使用固定的用户数据目录，保存登录状态
+            user_data_dir = os.path.join(os.path.expanduser("~"), ".ai_web_automation", "browser_profile")
+            os.makedirs(user_data_dir, exist_ok=True)
             
             launch_options = {
                 "headless": False,
                 "args": [
                     "--no-first-run",
-                    "--no-default-browser-check",
-                    "--disable-extensions"
+                    "--no-default-browser-check"
                 ]
             }
             
             if browser_type.lower() == "chrome":
                 context = playwright.chromium.launch_persistent_context(
-                    temp_dir,
+                    user_data_dir,
                     **launch_options
                 )
                 browser_type_name = "chrome"
             elif browser_type.lower() == "edge":
                 context = playwright.chromium.launch_persistent_context(
-                    temp_dir,
+                    user_data_dir,
                     channel="msedge",
                     **launch_options
                 )
                 browser_type_name = "edge"
             elif browser_type.lower() == "firefox":
                 context = playwright.firefox.launch_persistent_context(
-                    temp_dir,
+                    user_data_dir,
                     **launch_options
                 )
                 browser_type_name = "firefox"
@@ -71,9 +71,9 @@ class BrowserManager:
                 return False
             
             self.contexts["default"] = context
-            self.temp_dirs["default"] = temp_dir
+            self.temp_dirs["default"] = user_data_dir
             
-            logger.info(f"已启动{browser_type_name}浏览器，配置目录: {temp_dir}")
+            logger.info(f"已启动{browser_type_name}浏览器，用户数据目录: {user_data_dir}")
             
             time.sleep(2)
             return True
