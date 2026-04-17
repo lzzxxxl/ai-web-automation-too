@@ -157,6 +157,7 @@ class AIAutomationTool:
                     return False
                 
                 # 去重
+                title_manager.deduplicate_titles()
                 self.tasks = title_manager.get_task_queue()
                 logger.info(f"任务队列已生成，共 {len(self.tasks)} 个任务")
                 self.current_task_index = 0
